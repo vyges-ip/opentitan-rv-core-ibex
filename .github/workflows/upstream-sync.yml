@@ -1,0 +1,438 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # Allow manual triggering
+  push:
+    # Trigger when upstream.yaml or workflow file is updated
+    paths:
+      - 'upstream.yaml'
+      - '.github/workflows/upstream-sync.yml'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install yq and gh CLI
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          # gh CLI is pre-installed in GitHub Actions runners
+      
+      - name: Read upstream.yaml
+        id: upstream
+        run: |
+          if [[ ! -f upstream.yaml ]]; then
+            echo "Error: upstream.yaml not found"
+            exit 1
+          fi
+          UPSTREAM_TYPE=$(yq eval '.upstream.type' upstream.yaml)
+          echo "type=$UPSTREAM_TYPE" >> $GITHUB_OUTPUT
+          
+          if [[ "$UPSTREAM_TYPE" == "monorepo" ]]; then
+            echo "source=$(yq eval '.upstream.source' upstream.yaml)" >> $GITHUB_OUTPUT
+            echo "path=$(yq eval '.upstream.path' upstream.yaml)" >> $GITHUB_OUTPUT
+            echo "commit=$(yq eval '.upstream.commit' upstream.yaml)" >> $GITHUB_OUTPUT
+          else
+            echo "repo=$(yq eval '.upstream.repo' upstream.yaml)" >> $GITHUB_OUTPUT
+            echo "branch=$(yq eval '.upstream.branch // "main"' upstream.yaml)" >> $GITHUB_OUTPUT
+            echo "commit=$(yq eval '.upstream.commit' upstream.yaml)" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: false
+      
+      - name: Check if initial sync needed
+        id: initial_check
+        run: |
+          # Check if repository has any synced content
+          if [[ ! -d rtl ]] && [[ ! -d vendor ]] && [[ ! -f LICENSE ]] && [[ ! -f README.md ]]; then
+            echo "needs_initial_sync=true" >> $GITHUB_OUTPUT
+            echo "Repository is empty, performing initial sync..."
+          else
+            echo "needs_initial_sync=false" >> $GITHUB_OUTPUT
+            echo "Repository already has content, checking for updates..."
+          fi
+      
+      - name: Clone upstream and check for updates (monorepo)
+        id: check_monorepo
+        if: steps.initial_check.outputs.needs_initial_sync != 'true' && steps.upstream.outputs.type == 'monorepo'
+        run: |
+          UPSTREAM_SOURCE="${{ steps.upstream.outputs.source }}"
+          UPSTREAM_PATH="${{ steps.upstream.outputs.path }}"
+          CURRENT_COMMIT="${{ steps.upstream.outputs.commit }}"
+          
+          # Clean up any existing clone
+          rm -rf /tmp/upstream
+          
+          # Clone monorepo
+          git clone --quiet "$UPSTREAM_SOURCE" /tmp/upstream
+          cd /tmp/upstream
+          git checkout "$CURRENT_COMMIT" --quiet
+          
+          # Check if path exists at current commit
+          if [[ ! -d "$UPSTREAM_PATH" ]]; then
+            echo "Error: IP path $UPSTREAM_PATH does not exist at commit $CURRENT_COMMIT"
+            exit 1
+          fi
+          
+          # Get latest commit on main/master branch
+          git checkout main --quiet 2>/dev/null || git checkout master --quiet
+          LATEST_COMMIT=$(git rev-parse HEAD)
+          
+          echo "current=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST_COMMIT" >> $GITHUB_OUTPUT
+          
+          if [[ "$CURRENT_COMMIT" == "$LATEST_COMMIT" ]]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Clone upstream for initial sync (monorepo)
+        id: initial_clone_monorepo
+        if: steps.initial_check.outputs.needs_initial_sync == 'true' && steps.upstream.outputs.type == 'monorepo'
+        run: |
+          UPSTREAM_SOURCE="${{ steps.upstream.outputs.source }}"
+          UPSTREAM_PATH="${{ steps.upstream.outputs.path }}"
+          TARGET_COMMIT="${{ steps.upstream.outputs.commit }}"
+          
+          # Clean up any existing clone
+          rm -rf /tmp/upstream
+          
+          # Clone monorepo at specific commit for initial sync
+          echo "Cloning $UPSTREAM_SOURCE..."
+          git clone --quiet "$UPSTREAM_SOURCE" /tmp/upstream
+          cd /tmp/upstream
+          
+          echo "Checking out commit $TARGET_COMMIT..."
+          git checkout "$TARGET_COMMIT" --quiet || {
+            echo "❌ Error: Failed to checkout commit $TARGET_COMMIT"
+            echo "  Attempting to fetch the commit..."
+            git fetch --quiet origin "$TARGET_COMMIT" 2>/dev/null || git fetch --quiet origin 2>/dev/null
+            git checkout "$TARGET_COMMIT" --quiet || {
+              echo "❌ Error: Commit $TARGET_COMMIT does not exist or cannot be checked out"
+              echo "  Available branches:"
+              git branch -r | head -10
+              exit 1
+            }
+          }
+          
+          # Verify path exists
+          echo "Verifying IP path: $UPSTREAM_PATH"
+          if [[ ! -d "$UPSTREAM_PATH" ]]; then
+            echo "❌ Error: IP path $UPSTREAM_PATH does not exist at commit $TARGET_COMMIT"
+            echo "  Current commit: $(git rev-parse HEAD)"
+            echo "  Current branch: $(git branch --show-current 2>/dev/null || echo 'detached HEAD')"
+            echo "  Checking parent directory structure:"
+            PARENT_DIR=$(dirname "$UPSTREAM_PATH")
+            if [[ -d "$PARENT_DIR" ]]; then
+              echo "  Contents of $PARENT_DIR:"
+              ls -la "$PARENT_DIR" | head -20
+            else
+              echo "  Parent directory $PARENT_DIR does not exist"
+              echo "  Root hw/ip/ contents:"
+              ls -la hw/ip/ 2>/dev/null | head -20 || echo "    hw/ip/ does not exist"
+            fi
+            echo "  Searching for similar paths:"
+            find . -type d -iname "*$(basename "$UPSTREAM_PATH")*" 2>/dev/null | head -10
+            exit 1
+          fi
+          
+          echo "✅ Cloned monorepo at commit $TARGET_COMMIT for initial sync"
+          echo "✅ Verified IP path $UPSTREAM_PATH exists"
+      
+      - name: Sync upstream files (monorepo)
+        if: (steps.check_monorepo.outputs.has_changes == 'true' || steps.initial_check.outputs.needs_initial_sync == 'true') && steps.upstream.outputs.type == 'monorepo'
+        run: |
+          UPSTREAM_SOURCE="${{ steps.upstream.outputs.source }}"
+          UPSTREAM_PATH="${{ steps.upstream.outputs.path }}"
+          
+          # Determine target commit and ensure /tmp/upstream is ready
+          if [[ "${{ steps.initial_check.outputs.needs_initial_sync }}" == "true" ]]; then
+            TARGET_COMMIT="${{ steps.upstream.outputs.commit }}"
+            echo "Initial sync: using commit from upstream.yaml: $TARGET_COMMIT"
+            
+            # For initial sync, /tmp/upstream should already exist from initial_clone_monorepo step
+            # But verify it exists and is at the correct commit
+            if [[ ! -d "/tmp/upstream" ]]; then
+              echo "Warning: /tmp/upstream not found from initial_clone_monorepo step. Re-cloning..."
+              rm -rf /tmp/upstream
+              git clone --quiet "$UPSTREAM_SOURCE" /tmp/upstream
+              cd /tmp/upstream
+              git checkout "$TARGET_COMMIT" --quiet
+            else
+              # Verify we're at the correct commit
+              cd /tmp/upstream
+              CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
+              if [[ "$CURRENT_COMMIT" != "$TARGET_COMMIT" ]]; then
+                echo "Current commit ($CURRENT_COMMIT) doesn't match target ($TARGET_COMMIT). Checking out..."
+                git fetch --quiet origin "$TARGET_COMMIT" 2>/dev/null || git fetch --quiet origin 2>/dev/null
+                git checkout "$TARGET_COMMIT" --quiet || {
+                  echo "❌ Error: Failed to checkout commit $TARGET_COMMIT"
+                  exit 1
+                }
+              fi
+            fi
+            
+            # Verify path exists at this commit
+            if [[ ! -d "$UPSTREAM_PATH" ]]; then
+              echo "❌ Error: IP path $UPSTREAM_PATH does not exist at commit $TARGET_COMMIT"
+              echo "  Current directory: $(pwd)"
+              echo "  Available paths in /tmp/upstream:"
+              ls -la /tmp/upstream/ 2>/dev/null | head -20
+              exit 1
+            fi
+            
+          else
+            TARGET_COMMIT="${{ steps.check_monorepo.outputs.latest }}"
+            echo "Update sync: checking out latest commit: $TARGET_COMMIT"
+            cd /tmp/upstream
+            git checkout "$TARGET_COMMIT" --quiet || {
+              echo "❌ Error: Failed to checkout commit $TARGET_COMMIT for update"
+              exit 1
+            }
+          fi
+          
+          # Return to workspace directory
+          cd "$GITHUB_WORKSPACE"
+          echo "Working directory: $(pwd)"
+          echo "upstream.yaml exists: $([ -f upstream.yaml ] && echo 'yes' || echo 'no')"
+          
+          # Debug: Show upstream.yaml content
+          echo "=== upstream.yaml content ==="
+          cat upstream.yaml || echo "Failed to read upstream.yaml"
+          echo "=============================="
+          
+          # Process RTL imports from monorepo path
+          RTL_COUNT=$(yq eval '.import.rtl | length' upstream.yaml 2>&1)
+          if [[ $? -ne 0 ]] || [[ -z "$RTL_COUNT" ]] || [[ "$RTL_COUNT" == "null" ]]; then
+            echo "⚠️ Warning: Failed to get RTL count from upstream.yaml or count is 0/null"
+            echo "  yq output: $RTL_COUNT"
+            RTL_COUNT=0
+          else
+            echo "Found $RTL_COUNT RTL import(s) in upstream.yaml"
+          fi
+          
+          if [[ "$RTL_COUNT" -gt 0 ]]; then
+            for ((i=0; i<$RTL_COUNT; i++)); do
+              echo "Processing RTL import $i..."
+              UPSTREAM_REL_PATH=$(yq eval ".import.rtl[$i].path" upstream.yaml 2>&1)
+              if [[ $? -ne 0 ]]; then
+                echo "❌ Error: Failed to read import.rtl[$i].path from upstream.yaml"
+                echo "  yq output: $UPSTREAM_REL_PATH"
+                exit 1
+              fi
+              
+              LOCAL_PATH=$(yq eval ".import.rtl[$i].map_to" upstream.yaml 2>&1)
+              if [[ $? -ne 0 ]]; then
+                echo "❌ Error: Failed to read import.rtl[$i].map_to from upstream.yaml"
+                echo "  yq output: $LOCAL_PATH"
+                exit 1
+              fi
+              
+              if [[ -z "$UPSTREAM_REL_PATH" ]] || [[ -z "$LOCAL_PATH" ]]; then
+                echo "❌ Error: RTL import $i has empty path or map_to"
+                echo "  path: '$UPSTREAM_REL_PATH'"
+                echo "  map_to: '$LOCAL_PATH'"
+                exit 1
+              fi
+              
+              # For monorepo, path is relative to the IP path
+              FULL_UPSTREAM_PATH="$UPSTREAM_PATH/$UPSTREAM_REL_PATH"
+              echo "Syncing RTL: $FULL_UPSTREAM_PATH -> $LOCAL_PATH"
+              mkdir -p "$LOCAL_PATH"
+              
+              if [[ -d "/tmp/upstream/$FULL_UPSTREAM_PATH" ]]; then
+                # Copy files and check if any were copied
+                if cp -r "/tmp/upstream/$FULL_UPSTREAM_PATH"/* "$LOCAL_PATH/" 2>&1; then
+                  FILE_COUNT=$(find "$LOCAL_PATH" -type f 2>/dev/null | wc -l)
+                  echo "✅ Copied RTL files to $LOCAL_PATH ($FILE_COUNT files)"
+                else
+                  echo "⚠️ Warning: Failed to copy some RTL files from $FULL_UPSTREAM_PATH"
+                  # Check if directory is empty
+                  if [[ -z "$(ls -A "$LOCAL_PATH" 2>/dev/null)" ]]; then
+                    echo "❌ Error: RTL directory $LOCAL_PATH is empty after copy attempt"
+                    exit 1
+                  fi
+                fi
+              else
+                echo "❌ Error: Source path /tmp/upstream/$FULL_UPSTREAM_PATH does not exist"
+                echo "  Current directory: $(pwd)"
+                echo "  /tmp/upstream exists: $([ -d /tmp/upstream ] && echo 'yes' || echo 'no')"
+                echo "  UPSTREAM_PATH: $UPSTREAM_PATH"
+                echo "  UPSTREAM_REL_PATH: $UPSTREAM_REL_PATH"
+                echo "  Checking if IP path exists:"
+                ls -la "/tmp/upstream/$UPSTREAM_PATH" 2>/dev/null || echo "    IP path does not exist"
+                exit 1
+              fi
+            done
+          else
+            echo "❌ Error: No RTL imports found in upstream.yaml (RTL_COUNT=$RTL_COUNT)"
+            echo "  This is required for initial sync"
+            exit 1
+          fi
+          
+          # Process license imports (from monorepo root)
+          if yq eval '.import.license' upstream.yaml 2>/dev/null | grep -q "path"; then
+            LICENSE_COUNT=$(yq eval '.import.license | length' upstream.yaml 2>/dev/null || echo "0")
+            if [[ -z "$LICENSE_COUNT" ]] || [[ "$LICENSE_COUNT" == "null" ]]; then
+              LICENSE_COUNT=0
+            fi
+            if [[ "$LICENSE_COUNT" -gt 0 ]]; then
+              for ((i=0; i<$LICENSE_COUNT; i++)); do
+                LICENSE_PATH=$(yq eval ".import.license[$i].path" upstream.yaml 2>/dev/null || echo "")
+                if [[ -n "$LICENSE_PATH" ]]; then
+                  echo "Syncing license: $LICENSE_PATH"
+                  if [[ -f "/tmp/upstream/$LICENSE_PATH" ]]; then
+                    cp "/tmp/upstream/$LICENSE_PATH" . 2>/dev/null && echo "✅ Copied license file" || echo "⚠️ Failed to copy license"
+                  else
+                    echo "⚠️ Warning: License file /tmp/upstream/$LICENSE_PATH does not exist"
+                  fi
+                fi
+              done
+            fi
+          fi
+          
+          # Process readme imports (from IP path)
+          if yq eval '.import.readme' upstream.yaml 2>/dev/null | grep -q "path"; then
+            README_COUNT=$(yq eval '.import.readme | length' upstream.yaml 2>/dev/null || echo "0")
+            if [[ -z "$README_COUNT" ]] || [[ "$README_COUNT" == "null" ]]; then
+              README_COUNT=0
+            fi
+            if [[ "$README_COUNT" -gt 0 ]]; then
+              for ((i=0; i<$README_COUNT; i++)); do
+                README_REL_PATH=$(yq eval ".import.readme[$i].path" upstream.yaml 2>/dev/null || echo "")
+                if [[ -n "$README_REL_PATH" ]]; then
+                  README_FULL_PATH="$UPSTREAM_PATH/$README_REL_PATH"
+                  echo "Syncing README: $README_FULL_PATH"
+                  if [[ -f "/tmp/upstream/$README_FULL_PATH" ]]; then
+                    cp "/tmp/upstream/$README_FULL_PATH" . 2>/dev/null && echo "✅ Copied README" || echo "⚠️ Failed to copy README"
+                  else
+                    echo "⚠️ Warning: README file /tmp/upstream/$README_FULL_PATH does not exist"
+                  fi
+                fi
+              done
+            fi
+          fi
+          
+          # Verify that at least some files were synced (for initial sync only)
+          if [[ "${{ steps.initial_check.outputs.needs_initial_sync }}" == "true" ]]; then
+            # For initial sync, check that we have at least RTL, LICENSE, or README
+            SYNCED_FILES=0
+            if [[ -d rtl ]] && [[ -n "$(ls -A rtl 2>/dev/null)" ]]; then
+              SYNCED_FILES=$((SYNCED_FILES + 1))
+              echo "✅ RTL directory synced ($(find rtl -type f | wc -l) files)"
+            fi
+            if [[ -f LICENSE ]]; then
+              SYNCED_FILES=$((SYNCED_FILES + 1))
+              echo "✅ LICENSE file synced"
+            fi
+            if [[ -f README.md ]]; then
+              SYNCED_FILES=$((SYNCED_FILES + 1))
+              echo "✅ README.md synced"
+            fi
+            
+            if [[ $SYNCED_FILES -eq 0 ]]; then
+              echo "❌ Error: No files were synced. Check that the IP path exists in the monorepo."
+              echo "  Monorepo: $UPSTREAM_SOURCE"
+              echo "  IP Path: $UPSTREAM_PATH"
+              echo "  Commit: $TARGET_COMMIT"
+              echo "  /tmp/upstream exists: $([ -d /tmp/upstream ] && echo 'yes' || echo 'no')"
+              if [[ -d /tmp/upstream ]]; then
+                echo "  Contents of /tmp/upstream/$UPSTREAM_PATH:"
+                ls -la "/tmp/upstream/$UPSTREAM_PATH" 2>/dev/null || echo "    (path does not exist)"
+              fi
+              exit 1
+            else
+              echo "✅ Initial sync completed successfully ($SYNCED_FILES type(s) of files synced)"
+            fi
+          fi
+          
+          # Update upstream.yaml with new commit (only if this was an update, not initial sync)
+          if [[ "${{ steps.initial_check.outputs.needs_initial_sync }}" != "true" ]]; then
+            NEW_COMMIT="${{ steps.check_monorepo.outputs.latest }}"
+            yq eval ".upstream.commit = \"$NEW_COMMIT\"" -i upstream.yaml
+            yq eval ".upstream.extracted_at = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i upstream.yaml
+            echo "✅ Updated upstream.yaml commit to $NEW_COMMIT"
+          fi
+          
+          echo "✅ Files synced from monorepo commit $TARGET_COMMIT"
+      
+      - name: Check if metadata file exists
+        id: metadata_check
+        run: |
+          if [[ -f vyges-metadata.json ]]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ vyges-metadata.json already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ vyges-metadata.json does not exist, will generate"
+          fi
+      
+      - name: Generate metadata skeleton (if needed)
+        if: steps.metadata_check.outputs.exists == 'false'
+        run: |
+          # Generate basic metadata skeleton
+          IP_NAME=$(basename "${{ github.repository }}")
+          UPSTREAM_TYPE=$(yq eval '.upstream.type' upstream.yaml)
+          
+          if [[ "$UPSTREAM_TYPE" == "monorepo" ]]; then
+            UPSTREAM_SOURCE=$(yq eval '.upstream.source' upstream.yaml)
+            UPSTREAM_PATH=$(yq eval '.upstream.path' upstream.yaml)
+            UPSTREAM_COMMIT=$(yq eval '.upstream.commit' upstream.yaml)
+          else
+            UPSTREAM_SOURCE=$(yq eval '.upstream.repo' upstream.yaml)
+            UPSTREAM_COMMIT=$(yq eval '.upstream.commit' upstream.yaml)
+          fi
+          
+          LICENSE_SPDX=$(yq eval '.license.spdx' upstream.yaml)
+          
+          jq -n \
+            --arg name "$IP_NAME" \
+            --arg version "0.1.0" \
+            --arg license "$LICENSE_SPDX" \
+            --arg source_type "git" \
+            --arg source_url "$UPSTREAM_SOURCE" \
+            --arg source_commit "$UPSTREAM_COMMIT" \
+            '{
+              name: $name,
+              version: $version,
+              license: $license,
+              source: {
+                type: $source_type,
+                url: $source_url,
+                commit: $source_commit
+              }
+            }' > vyges-metadata.json
+          echo "✅ Generated vyges-metadata.json skeleton"
+      
+      - name: Commit changes
+        if: steps.check_monorepo.outputs.has_changes == 'true' || steps.initial_check.outputs.needs_initial_sync == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes to commit
+          if [[ -n "$(git status --porcelain)" ]]; then
+            BRANCH_NAME=$(git branch --show-current || echo "main")
+            
+            if [[ "${{ steps.initial_check.outputs.needs_initial_sync }}" == "true" ]]; then
+              COMMIT_MSG=$(printf "Initial sync from monorepo\n\n- Source: %s\n- Path: %s\n- Commit: %s" "${{ steps.upstream.outputs.source }}" "${{ steps.upstream.outputs.path }}" "${{ steps.upstream.outputs.commit }}")
+            else
+              COMMIT_MSG=$(printf "Sync upstream from monorepo\n\n- Source: %s\n- Path: %s\n- Updated commit: %s (was %s)" "${{ steps.upstream.outputs.source }}" "${{ steps.upstream.outputs.path }}" "${{ steps.check_monorepo.outputs.latest }}" "${{ steps.upstream.outputs.commit }}")
+            fi
+            
+            git add -A
+            git commit -m "$COMMIT_MSG"
+            git push origin "$BRANCH_NAME"
+            echo "✅ Upstream sync completed and pushed to $BRANCH_NAME"
+          else
+            echo "No changes to commit"
+          fi
