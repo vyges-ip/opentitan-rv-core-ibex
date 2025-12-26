@@ -1,0 +1,10 @@
+{
+  "name": "opentitan-rv-core-ibex",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/lowRISC/opentitan",
+    "commit": "304378684dfcf5be73bbd14faffa71790793d8c6"
+  }
+}
