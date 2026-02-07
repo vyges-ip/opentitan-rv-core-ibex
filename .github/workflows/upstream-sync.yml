@@ -4,7 +4,13 @@ on:
   schedule:
     # Run weekly on Monday at 00:00 UTC
     - cron: '0 0 * * 1'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force full re-sync from upstream (overwrites local RTL)'
+        required: false
+        default: false
+        type: boolean
   push:
     # Trigger when upstream.yaml or workflow file is updated
     paths:
@@ -92,6 +98,10 @@ jobs:
           if [[ "$CURRENT_COMMIT" == "$LATEST_COMMIT" ]]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+          # Force full re-sync when manually triggered with force_sync
+          if [[ "${{ github.event.inputs.force_sync }}" == "true" ]]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
       
@@ -247,11 +257,13 @@ jobs:
               # For monorepo, path is relative to the IP path
               FULL_UPSTREAM_PATH="$UPSTREAM_PATH/$UPSTREAM_REL_PATH"
               echo "Syncing RTL: $FULL_UPSTREAM_PATH -> $LOCAL_PATH"
+              # Clear destination so we get a complete copy (fixes partial/incomplete syncs)
+              rm -rf "$LOCAL_PATH"
               mkdir -p "$LOCAL_PATH"
               
               if [[ -d "/tmp/upstream/$FULL_UPSTREAM_PATH" ]]; then
-                # Copy files and check if any were copied
-                if cp -r "/tmp/upstream/$FULL_UPSTREAM_PATH"/* "$LOCAL_PATH/" 2>&1; then
+                # Copy full tree (contents including subdirs and hidden files)
+                if cp -r "/tmp/upstream/$FULL_UPSTREAM_PATH"/. "$LOCAL_PATH/" 2>&1; then
                   FILE_COUNT=$(find "$LOCAL_PATH" -type f 2>/dev/null | wc -l)
                   echo "✅ Copied RTL files to $LOCAL_PATH ($FILE_COUNT files)"
                 else
