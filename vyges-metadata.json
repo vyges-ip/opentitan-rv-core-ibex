@@ -43,19 +43,12 @@
       "description": "Instruction and data memory interface"
     }
   ],
-  "categories": {
-    "primary": "core",
-    "secondary": [
-      "risc-v",
-      "ibex"
-    ],
-    "tags": [
-      "risc-v",
-      "ibex",
-      "opentitan",
-      "lowrisc-opentitan"
-    ]
-  },
+  "categories": [
+    {
+      "main_category": "Processing Cores",
+      "sub_category": "risc-v, ibex"
+    }
+  ],
   "community": {
     "issues": "https://github.com/vyges-ip/opentitan-rv-core-ibex/issues",
     "contributions": "https://github.com/vyges-ip/opentitan-rv-core-ibex/pulls"
@@ -65,5 +58,24 @@
     "logo": "https://vyges.com/assets/logo.svg",
     "website": "https://github.com/vyges-ip/opentitan-rv-core-ibex",
     "usage": "Use of the logo is permitted for attribution or compatibility references only."
+  },
+  "keywords": [
+    "risc-v",
+    "ibex",
+    "opentitan",
+    "lowrisc-opentitan"
+  ],
+  "asic": {
+    "flavor": "digital",
+    "pdks": [
+      "sky130A"
+    ],
+    "synthesis_tool": "yosys"
+  },
+  "fpga": {
+    "toolchain": "yosys"
+  },
+  "automation": {
+    "automation_level": "basic"
   }
 }
