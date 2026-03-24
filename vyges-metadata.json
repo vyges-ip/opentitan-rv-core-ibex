@@ -13,7 +13,7 @@
       "rtl/rv_core_ibex_pkg.sv"
     ]
   },
-  "updated": "2026-02-19T06:22:56Z",
+  "updated": "2026-03-24T02:12:44Z",
   "$schema": "https://vyges.com/schema/v1/vyges-metadata.schema.json",
   "x-version": "1.0.0",
   "description": "Rv Core Ibex. OpenTitan IP block from hw/ip/rv_core_ibex.",
@@ -25,7 +25,7 @@
   "design_type": [
     "digital"
   ],
-  "maturity": "imported",
+  "maturity": "prototype",
   "created": "2026-02-19T06:12:02Z",
   "interfaces": [
     {
@@ -33,14 +33,76 @@
       "direction": "input",
       "protocol": "TL-UL",
       "width": 32,
-      "description": "TL-UL host interface for register access"
+      "description": "TL-UL host interface for register access",
+      "signals": [
+        {
+          "name": "clk_i",
+          "direction": "input",
+          "type": "clock",
+          "width": 1,
+          "description": "System clock"
+        },
+        {
+          "name": "rst_ni",
+          "direction": "input",
+          "type": "reset",
+          "width": 1,
+          "active_level": "low",
+          "description": "Active-low synchronous reset"
+        },
+        {
+          "name": "tl_i",
+          "direction": "input",
+          "type": "data",
+          "width": 1,
+          "description": "TL-UL host-to-device (tl_h2d_t struct) \u2014 connect to xbar slave port"
+        },
+        {
+          "name": "tl_o",
+          "direction": "output",
+          "type": "data",
+          "width": 1,
+          "description": "TL-UL device-to-host (tl_d2h_t struct) \u2014 connect to xbar slave port"
+        }
+      ]
     },
     {
       "type": "bus",
       "direction": "output",
       "protocol": "TL-UL",
       "width": 32,
-      "description": "Instruction and data memory interface"
+      "description": "Instruction and data memory interface",
+      "signals": [
+        {
+          "name": "clk_i",
+          "direction": "input",
+          "type": "clock",
+          "width": 1,
+          "description": "System clock"
+        },
+        {
+          "name": "rst_ni",
+          "direction": "input",
+          "type": "reset",
+          "width": 1,
+          "active_level": "low",
+          "description": "Active-low synchronous reset"
+        },
+        {
+          "name": "tl_i",
+          "direction": "input",
+          "type": "data",
+          "width": 1,
+          "description": "TL-UL host-to-device (tl_h2d_t struct) \u2014 connect to xbar slave port"
+        },
+        {
+          "name": "tl_o",
+          "direction": "output",
+          "type": "data",
+          "width": 1,
+          "description": "TL-UL device-to-host (tl_d2h_t struct) \u2014 connect to xbar slave port"
+        }
+      ]
     }
   ],
   "categories": [
