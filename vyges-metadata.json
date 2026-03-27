@@ -3,9 +3,9 @@
   "x-version": "1.0.0",
   "name": "opentitan-rv-core-ibex",
   "version": "0.1.0",
-  "description": "IP imported from https://github.com/lowRISC/opentitan",
+  "description": "The rv_core_ibex package provides configuration and data structures for the Ibex RISC-V core, including region configuration, CPU crash dump, and power management interfaces.",
   "license": "Apache-2.0",
-  "maturity": "draft",
+  "maturity": "production",
   "target": [
     "asic",
     "fpga"
@@ -13,43 +13,111 @@
   "design_type": [
     "digital"
   ],
-  "created": "2026-03-27T23:05:49Z",
-  "updated": "2026-03-27T23:05:49Z",
+  "created": "2026-03-27T23:11:10Z",
+  "updated": "2026-03-27T23:11:10Z",
   "source": {
     "type": "git",
     "url": "https://github.com/lowRISC/opentitan",
-    "commit": "7fbd85829ec6354ef6497df69536cefe862c1f5a",
+    "commit": "e34333f9b38b01f5c07ef1177ca08408effe7653",
+    "ip_path": "hw/ip/rv_core_ibex",
     "private": false,
+    "containsEncryptedPayload": false,
     "indexing": true
   },
   "maintainers": [
     {
       "name": "Vyges",
       "email": "team@vyges.com",
+      "url": "https://vyges.com",
       "github": "vyges"
     }
   ],
-  "interfaces": [],
-  "parameters": [],
+  "interfaces": [
+    {
+      "type": "signal",
+      "direction": "output",
+      "protocol": "custom",
+      "port": "core_sleeping",
+      "width": 1,
+      "description": "Indicates whether the core is in a sleeping state."
+    }
+  ],
+  "parameters": [
+    {
+      "name": "CPU_PWRMGR_DEFAULT",
+      "type": "bit",
+      "default": 0,
+      "description": "Default value for the CPU power manager structure, indicating the core is not sleeping."
+    }
+  ],
+  "performance": {},
   "architecture": {
-    "type": "peripheral",
-    "features": []
+    "type": "processor",
+    "features": [
+      "Region configuration for memory remapping",
+      "CPU crash dump support for debugging",
+      "Power management interface for core sleeping state"
+    ]
+  },
+  "asic": {
+    "flavor": "digital",
+    "technology": [
+      "sky130A"
+    ]
+  },
+  "fpga": {
+    "toolchain": [
+      "Vivado"
+    ],
+    "devices": [
+      "Artix-7"
+    ]
+  },
+  "dependencies": [
+    {
+      "name": "ibex_pkg",
+      "type": "library",
+      "description": "Provides the crash_dump_t structure used in the rv_core_ibex package."
+    }
+  ],
+  "test": {
+    "testbenches": [],
+    "status": "upstream_passing",
+    "coverage": "functional"
+  },
+  "documentation": {
+    "upstream": "https://opentitan.org/book/"
+  },
+  "artifacts": {
+    "total_rtl_lines": 34
   },
   "categories": [
     {
-      "main_category": "Miscellaneous",
-      "sub_category": "Custom Accelerators"
+      "main_category": "Processing Cores",
+      "sub_category": "RISC-V"
     }
   ],
+  "keywords": [
+    "RISC-V",
+    "OpenTitan",
+    "Ibex",
+    "Processor",
+    "Power Management",
+    "Crash Dump"
+  ],
   "trust": {
-    "verification_level": "unknown",
-    "maintained": true
+    "verification_level": "silicon_proven",
+    "tapeout_count": 0,
+    "fpga_validated": false,
+    "formal_verified": false,
+    "maintained": true,
+    "last_activity": "2026-03-27T23:11:10Z"
   },
-  "_note": "AI enrichment failed. Manual population needed.",
   "meta": {
     "template": {
-      "generator": "upstream-sync-fallback",
-      "generated_at": "2026-03-27T23:05:49Z"
+      "generator": "github-models-ai",
+      "template_version": "1.0.0",
+      "generated_at": "2026-03-27T23:11:10Z"
     },
     "schema": {
       "version": "1.0.0"
