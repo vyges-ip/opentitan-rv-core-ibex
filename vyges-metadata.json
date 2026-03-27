@@ -3,22 +3,56 @@
   "x-version": "1.0.0",
   "name": "opentitan-rv-core-ibex",
   "version": "0.1.0",
-  "description": "OpenTitan integration package for the Ibex RV32IMC RISC-V CPU. Contains rv_core_ibex_pkg.sv with SoC-level configuration types. The actual Ibex core RTL is in the separate ibex-core (vyges-ip/ibex) repository. Used by soc-generator for CPU metadata resolution.",
+  "description": "IP imported from https://github.com/lowRISC/opentitan",
   "license": "Apache-2.0",
-  "maturity": "production",
-  "target": ["asic", "fpga"],
-  "design_type": ["digital"],
-  "created": "2026-02-19T06:12:02Z",
-  "updated": "2026-03-27T19:25:49Z",
-  "source": {"type": "git", "url": "https://github.com/lowRISC/opentitan", "commit": "304378684dfcf5be73bbd14faffa71790793d8c6", "ip_path": "hw/ip/rv_core_ibex", "private": false, "rtl_path": "rtl", "rtl_files": ["rtl/rv_core_ibex_pkg.sv"]},
-  "maintainers": [{"name": "Vyges", "email": "team@vyges.com", "github": "vyges"}],
+  "maturity": "draft",
+  "target": [
+    "asic",
+    "fpga"
+  ],
+  "design_type": [
+    "digital"
+  ],
+  "created": "2026-03-27T23:05:49Z",
+  "updated": "2026-03-27T23:05:49Z",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/lowRISC/opentitan",
+    "commit": "7fbd85829ec6354ef6497df69536cefe862c1f5a",
+    "private": false,
+    "indexing": true
+  },
+  "maintainers": [
+    {
+      "name": "Vyges",
+      "email": "team@vyges.com",
+      "github": "vyges"
+    }
+  ],
   "interfaces": [],
   "parameters": [],
-  "architecture": {"type": "cpu", "notes": "Integration package only. Ibex core RTL (ibex_top, ibex_core, pipeline stages) is in vyges-ip/ibex. This package provides SoC-level types for OpenTitan integration."},
-  "dependencies": [{"name": "ibex-core", "type": "cpu", "description": "Full Ibex RV32IMC RTL (31 files, ~15K lines)"}],
-  "artifacts": {"rtl": ["rtl/rv_core_ibex_pkg.sv"], "total_rtl_lines": 34},
-  "categories": {"primary": "cpu", "secondary": ["risc-v", "package"], "tags": ["ibex", "rv32imc", "risc-v", "cpu", "opentitan", "package"]},
-  "trust": {"verification_level": "silicon_proven", "tapeout_count": 3, "fpga_validated": true, "maintained": true, "last_activity": "2026-03-27", "notes": "Ibex is silicon-proven in OpenTitan Earl Grey + FPGA-validated in edge-sensor-soc Arty A7."},
-  "keywords": ["ibex", "rv32imc", "risc-v", "cpu", "opentitan"],
-  "meta": {"template": {"generator": "manual (gold-standard pass 2026-03-27)"}, "schema": {"version": "1.0.0"}}
+  "architecture": {
+    "type": "peripheral",
+    "features": []
+  },
+  "categories": [
+    {
+      "main_category": "Miscellaneous",
+      "sub_category": "Custom Accelerators"
+    }
+  ],
+  "trust": {
+    "verification_level": "unknown",
+    "maintained": true
+  },
+  "_note": "AI enrichment failed. Manual population needed.",
+  "meta": {
+    "template": {
+      "generator": "upstream-sync-fallback",
+      "generated_at": "2026-03-27T23:05:49Z"
+    },
+    "schema": {
+      "version": "1.0.0"
+    }
+  }
 }
