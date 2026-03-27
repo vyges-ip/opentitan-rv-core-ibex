@@ -1,143 +1,24 @@
 {
-  "name": "opentitan-rv-core-ibex",
-  "version": "0.1.0",
-  "license": "Apache-2.0",
-  "source": {
-    "type": "git",
-    "url": "https://github.com/lowRISC/opentitan",
-    "commit": "304378684dfcf5be73bbd14faffa71790793d8c6",
-    "ip_path": "hw/ip/rv_core_ibex",
-    "private": false,
-    "rtl_path": "rtl",
-    "rtl_files": [
-      "rtl/rv_core_ibex_pkg.sv"
-    ]
-  },
-  "updated": "2026-03-24T02:12:44Z",
   "$schema": "https://vyges.com/schema/v1/vyges-metadata.schema.json",
   "x-version": "1.0.0",
-  "description": "Rv Core Ibex. OpenTitan IP block from hw/ip/rv_core_ibex.",
-  "template": "opentitan-ip-template@1.0.0",
-  "target": [
-    "fpga",
-    "asic"
-  ],
-  "design_type": [
-    "digital"
-  ],
-  "maturity": "prototype",
+  "name": "opentitan-rv-core-ibex",
+  "version": "0.1.0",
+  "description": "OpenTitan integration package for the Ibex RV32IMC RISC-V CPU. Contains rv_core_ibex_pkg.sv with SoC-level configuration types. The actual Ibex core RTL is in the separate ibex-core (vyges-ip/ibex) repository. Used by soc-generator for CPU metadata resolution.",
+  "license": "Apache-2.0",
+  "maturity": "production",
+  "target": ["asic", "fpga"],
+  "design_type": ["digital"],
   "created": "2026-02-19T06:12:02Z",
-  "interfaces": [
-    {
-      "type": "bus",
-      "direction": "input",
-      "protocol": "TL-UL",
-      "width": 32,
-      "description": "TL-UL host interface for register access",
-      "signals": [
-        {
-          "name": "clk_i",
-          "direction": "input",
-          "type": "clock",
-          "width": 1,
-          "description": "System clock"
-        },
-        {
-          "name": "rst_ni",
-          "direction": "input",
-          "type": "reset",
-          "width": 1,
-          "active_level": "low",
-          "description": "Active-low synchronous reset"
-        },
-        {
-          "name": "tl_i",
-          "direction": "input",
-          "type": "data",
-          "width": 1,
-          "description": "TL-UL host-to-device (tl_h2d_t struct) \u2014 connect to xbar slave port"
-        },
-        {
-          "name": "tl_o",
-          "direction": "output",
-          "type": "data",
-          "width": 1,
-          "description": "TL-UL device-to-host (tl_d2h_t struct) \u2014 connect to xbar slave port"
-        }
-      ]
-    },
-    {
-      "type": "bus",
-      "direction": "output",
-      "protocol": "TL-UL",
-      "width": 32,
-      "description": "Instruction and data memory interface",
-      "signals": [
-        {
-          "name": "clk_i",
-          "direction": "input",
-          "type": "clock",
-          "width": 1,
-          "description": "System clock"
-        },
-        {
-          "name": "rst_ni",
-          "direction": "input",
-          "type": "reset",
-          "width": 1,
-          "active_level": "low",
-          "description": "Active-low synchronous reset"
-        },
-        {
-          "name": "tl_i",
-          "direction": "input",
-          "type": "data",
-          "width": 1,
-          "description": "TL-UL host-to-device (tl_h2d_t struct) \u2014 connect to xbar slave port"
-        },
-        {
-          "name": "tl_o",
-          "direction": "output",
-          "type": "data",
-          "width": 1,
-          "description": "TL-UL device-to-host (tl_d2h_t struct) \u2014 connect to xbar slave port"
-        }
-      ]
-    }
-  ],
-  "categories": [
-    {
-      "main_category": "Processing Cores",
-      "sub_category": "risc-v, ibex"
-    }
-  ],
-  "community": {
-    "issues": "https://github.com/vyges-ip/opentitan-rv-core-ibex/issues",
-    "contributions": "https://github.com/vyges-ip/opentitan-rv-core-ibex/pulls"
-  },
-  "branding": {
-    "provider": "Vyges IP Catalog",
-    "logo": "https://vyges.com/assets/logo.svg",
-    "website": "https://github.com/vyges-ip/opentitan-rv-core-ibex",
-    "usage": "Use of the logo is permitted for attribution or compatibility references only."
-  },
-  "keywords": [
-    "risc-v",
-    "ibex",
-    "opentitan",
-    "lowrisc-opentitan"
-  ],
-  "asic": {
-    "flavor": "digital",
-    "pdks": [
-      "sky130A"
-    ],
-    "synthesis_tool": "yosys"
-  },
-  "fpga": {
-    "toolchain": "yosys"
-  },
-  "automation": {
-    "automation_level": "basic"
-  }
+  "updated": "2026-03-27T19:25:49Z",
+  "source": {"type": "git", "url": "https://github.com/lowRISC/opentitan", "commit": "304378684dfcf5be73bbd14faffa71790793d8c6", "ip_path": "hw/ip/rv_core_ibex", "private": false, "rtl_path": "rtl", "rtl_files": ["rtl/rv_core_ibex_pkg.sv"]},
+  "maintainers": [{"name": "Vyges", "email": "team@vyges.com", "github": "vyges"}],
+  "interfaces": [],
+  "parameters": [],
+  "architecture": {"type": "cpu", "notes": "Integration package only. Ibex core RTL (ibex_top, ibex_core, pipeline stages) is in vyges-ip/ibex. This package provides SoC-level types for OpenTitan integration."},
+  "dependencies": [{"name": "ibex-core", "type": "cpu", "description": "Full Ibex RV32IMC RTL (31 files, ~15K lines)"}],
+  "artifacts": {"rtl": ["rtl/rv_core_ibex_pkg.sv"], "total_rtl_lines": 34},
+  "categories": {"primary": "cpu", "secondary": ["risc-v", "package"], "tags": ["ibex", "rv32imc", "risc-v", "cpu", "opentitan", "package"]},
+  "trust": {"verification_level": "silicon_proven", "tapeout_count": 3, "fpga_validated": true, "maintained": true, "last_activity": "2026-03-27", "notes": "Ibex is silicon-proven in OpenTitan Earl Grey + FPGA-validated in edge-sensor-soc Arty A7."},
+  "keywords": ["ibex", "rv32imc", "risc-v", "cpu", "opentitan"],
+  "meta": {"template": {"generator": "manual (gold-standard pass 2026-03-27)"}, "schema": {"version": "1.0.0"}}
 }
