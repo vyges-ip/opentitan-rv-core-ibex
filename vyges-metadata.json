@@ -122,5 +122,8 @@
     "schema": {
       "version": "1.0.0"
     }
+  },
+  "branding": {
+    "display_name": "Ibex CPU"
   }
 }
