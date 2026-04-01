@@ -3,7 +3,7 @@
   "x-version": "1.0.0",
   "name": "opentitan-rv-core-ibex",
   "version": "0.1.0",
-  "description": "The rv_core_ibex package provides configuration and data structures for the Ibex RISC-V core, including region configuration, CPU crash dump, and power management interfaces.",
+  "description": "The rv_core_ibex package provides data structures and default configurations for the OpenTitan Ibex RISC-V core, including region configuration, CPU crash dump, and power manager interfaces.",
   "license": "Apache-2.0",
   "maturity": "production",
   "target": [
@@ -13,12 +13,12 @@
   "design_type": [
     "digital"
   ],
-  "created": "2026-03-27T23:11:10Z",
-  "updated": "2026-03-27T23:11:10Z",
+  "created": "2026-04-01T06:06:26Z",
+  "updated": "2026-04-01T06:06:26Z",
   "source": {
     "type": "git",
     "url": "https://github.com/lowRISC/opentitan",
-    "commit": "e34333f9b38b01f5c07ef1177ca08408effe7653",
+    "commit": "4be12ad66f947eb28efb785cf644643bf75517af",
     "ip_path": "hw/ip/rv_core_ibex",
     "private": false,
     "containsEncryptedPayload": false,
@@ -34,7 +34,23 @@
   ],
   "interfaces": [
     {
-      "type": "signal",
+      "type": "bus",
+      "direction": "input",
+      "protocol": "custom",
+      "port": "matching_region",
+      "width": 32,
+      "description": "Defines the matching region for address remapping."
+    },
+    {
+      "type": "bus",
+      "direction": "input",
+      "protocol": "custom",
+      "port": "remap_addr",
+      "width": 32,
+      "description": "Specifies the remap address for the region."
+    },
+    {
+      "type": "interrupt",
       "direction": "output",
       "protocol": "custom",
       "port": "core_sleeping",
@@ -47,16 +63,17 @@
       "name": "CPU_PWRMGR_DEFAULT",
       "type": "bit",
       "default": 0,
-      "description": "Default value for the CPU power manager structure, indicating the core is not sleeping."
+      "description": "Default value for the CPU power manager interface."
     }
   ],
   "performance": {},
   "architecture": {
     "type": "processor",
     "features": [
-      "Region configuration for memory remapping",
-      "CPU crash dump support for debugging",
-      "Power management interface for core sleeping state"
+      "RISC-V core integration",
+      "Region configuration for address remapping",
+      "CPU crash dump support",
+      "Power management interface"
     ]
   },
   "asic": {
@@ -77,7 +94,7 @@
     {
       "name": "ibex_pkg",
       "type": "library",
-      "description": "Provides the crash_dump_t structure used in the rv_core_ibex package."
+      "description": "Provides additional data structures and utilities for the Ibex core."
     }
   ],
   "test": {
@@ -101,9 +118,9 @@
     "RISC-V",
     "OpenTitan",
     "Ibex",
-    "Processor",
-    "Power Management",
-    "Crash Dump"
+    "processor",
+    "address remapping",
+    "power management"
   ],
   "trust": {
     "verification_level": "silicon_proven",
@@ -111,19 +128,16 @@
     "fpga_validated": false,
     "formal_verified": false,
     "maintained": true,
-    "last_activity": "2026-03-27T23:11:10Z"
+    "last_activity": "2026-04-01"
   },
   "meta": {
     "template": {
       "generator": "github-models-ai",
       "template_version": "1.0.0",
-      "generated_at": "2026-03-27T23:11:10Z"
+      "generated_at": "2026-04-01T06:06:26Z"
     },
     "schema": {
       "version": "1.0.0"
     }
-  },
-  "branding": {
-    "display_name": "Ibex CPU"
   }
 }
