@@ -14,7 +14,7 @@
     "digital"
   ],
   "created": "2026-04-01T06:06:26Z",
-  "updated": "2026-04-01T06:06:26Z",
+  "updated": "2026-04-02T03:11:53Z",
   "source": {
     "type": "git",
     "url": "https://github.com/lowRISC/opentitan",
@@ -108,12 +108,15 @@
   "artifacts": {
     "total_rtl_lines": 34
   },
-  "categories": [
-    {
-      "main_category": "Processing Cores",
-      "sub_category": "RISC-V"
-    }
-  ],
+  "categories": {
+    "primary": "Processing Cores",
+    "secondary": [
+      {
+        "main_category": "Processing Cores",
+        "sub_category": "RISC-V"
+      }
+    ]
+  },
   "keywords": [
     "RISC-V",
     "OpenTitan",
@@ -139,5 +142,21 @@
     "schema": {
       "version": "1.0.0"
     }
-  }
+  },
+  "rtl_files": [
+    "rtl/rv_core_ibex_pkg.sv"
+  ],
+  "rtl_quality": {
+    "module_prefixed": true,
+    "defines_prefixed": true,
+    "header_guards": false,
+    "one_module_per_file": true,
+    "self_contained_includes": false,
+    "no_translate_pragmas": true,
+    "lint_clean": false,
+    "no_casex": true,
+    "width_clean": false,
+    "no_sv_keyword_conflicts": true
+  },
+  "defines": []
 }
