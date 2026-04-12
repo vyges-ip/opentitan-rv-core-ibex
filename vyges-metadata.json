@@ -34,12 +34,45 @@
   ],
   "interfaces": [
     {
+      "type": "clock",
+      "name": "clock",
+      "signals": [
+        {
+          "name": "clk_i",
+          "direction": "input",
+          "type": "clock",
+          "width": 1
+        }
+      ]
+    },
+    {
+      "type": "reset",
+      "name": "reset",
+      "signals": [
+        {
+          "name": "rst_ni",
+          "direction": "input",
+          "type": "reset",
+          "width": 1,
+          "active_level": "low"
+        }
+      ]
+    },
+    {
       "type": "bus",
       "direction": "input",
       "protocol": "custom",
       "port": "matching_region",
       "width": 32,
-      "description": "Region matching configuration for address remapping."
+      "description": "Region matching configuration for address remapping.",
+      "signals": [
+        {
+          "name": "cfg_i",
+          "direction": "input",
+          "type": "data",
+          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
+        }
+      ]
     },
     {
       "type": "bus",
@@ -47,7 +80,15 @@
       "protocol": "custom",
       "port": "remap_addr",
       "width": 32,
-      "description": "Address remapping configuration."
+      "description": "Address remapping configuration.",
+      "signals": [
+        {
+          "name": "cfg_i",
+          "direction": "input",
+          "type": "data",
+          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
+        }
+      ]
     },
     {
       "type": "interrupt",
@@ -98,7 +139,17 @@
     }
   ],
   "test": {
-    "testbenches": [],
+    "testbenches": [
+      {
+        "name": "soc_integration",
+        "path": "tb/cocotb/",
+        "framework": "cocotb",
+        "simulators": [
+          "verilator"
+        ],
+        "description": "SoC-level integration verified in edge-sensor-soc"
+      }
+    ],
     "status": "upstream_passing",
     "coverage": "functional"
   },
