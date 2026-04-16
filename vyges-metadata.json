@@ -14,7 +14,7 @@
     "digital"
   ],
   "created": "2026-04-13T02:36:33Z",
-  "updated": "2026-04-13T02:36:33Z",
+  "updated": "2026-04-16T21:25:00Z",
   "source": {
     "type": "git",
     "url": "https://github.com/lowRISC/opentitan",
@@ -91,9 +91,25 @@
   },
   "dependencies": [
     {
-      "name": "ibex_pkg",
-      "type": "library",
-      "description": "Provides crash dump structure and related definitions for the Ibex core."
+      "name": "vyges-ip/ibex",
+      "version": ">=1.0.0",
+      "dependency_info": {
+        "name": "vyges-ip/ibex",
+        "version": ">=1.0.0",
+        "type": "ip"
+      },
+      "source_management": {
+        "source": {
+          "type": "git",
+          "url": "https://github.com/vyges-ip/ibex",
+          "commit": "main"
+        },
+        "autoFetch": true
+      },
+      "compliance": {
+        "license": "Apache-2.0",
+        "attribution": "Ibex RV32 CPU core containing ibex_pkg. MUST-HAVE: this wrappers rv_core_ibex_pkg.sv imports ibex_pkg::crash_dump_t."
+      }
     }
   ],
   "test": {
