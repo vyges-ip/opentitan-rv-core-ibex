@@ -3,7 +3,7 @@
   "x-version": "1.0.0",
   "name": "opentitan-rv-core-ibex",
   "version": "0.1.0",
-  "description": "The rv_core_ibex package provides configuration and status structures for the Ibex RISC-V core, including region configuration, crash dump, and power management interfaces.",
+  "description": "The rv_core_ibex package provides configuration structures and default parameters for the Ibex RISC-V core, including region mapping, crash dump handling, and power management interfaces.",
   "license": "Apache-2.0",
   "maturity": "production",
   "target": [
@@ -13,12 +13,12 @@
   "design_type": [
     "digital"
   ],
-  "created": "2026-04-13T02:36:33Z",
-  "updated": "2026-04-16T21:25:00Z",
+  "created": "2026-04-06T02:27:45Z",
+  "updated": "2026-04-06T02:27:45Z",
   "source": {
     "type": "git",
     "url": "https://github.com/lowRISC/opentitan",
-    "commit": "d2f24af56cfaadfec57b2d4974f57aac27aac0fb",
+    "commit": "9dcbb0555f6da8b8a4d9b8057bccbe89cfccc69c",
     "ip_path": "hw/ip/rv_core_ibex",
     "private": false,
     "containsEncryptedPayload": false,
@@ -34,12 +34,45 @@
   ],
   "interfaces": [
     {
+      "type": "clock",
+      "name": "clock",
+      "signals": [
+        {
+          "name": "clk_i",
+          "direction": "input",
+          "type": "clock",
+          "width": 1
+        }
+      ]
+    },
+    {
+      "type": "reset",
+      "name": "reset",
+      "signals": [
+        {
+          "name": "rst_ni",
+          "direction": "input",
+          "type": "reset",
+          "width": 1,
+          "active_level": "low"
+        }
+      ]
+    },
+    {
       "type": "bus",
       "direction": "input",
       "protocol": "custom",
       "port": "matching_region",
       "width": 32,
-      "description": "Defines the memory region matching configuration."
+      "description": "Region matching configuration for address remapping.",
+      "signals": [
+        {
+          "name": "cfg_i",
+          "direction": "input",
+          "type": "data",
+          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
+        }
+      ]
     },
     {
       "type": "bus",
@@ -47,10 +80,18 @@
       "protocol": "custom",
       "port": "remap_addr",
       "width": 32,
-      "description": "Specifies the remap address for the memory region."
+      "description": "Address remapping configuration.",
+      "signals": [
+        {
+          "name": "cfg_i",
+          "direction": "input",
+          "type": "data",
+          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
+        }
+      ]
     },
     {
-      "type": "status",
+      "type": "interrupt",
       "direction": "output",
       "protocol": "custom",
       "port": "core_sleeping",
@@ -62,17 +103,18 @@
     {
       "name": "CPU_PWRMGR_DEFAULT",
       "type": "bit",
-      "default": "{core_sleeping: 1'b0}",
-      "description": "Default value for the CPU power manager status."
+      "default": 0,
+      "description": "Default value for the core sleeping state in the power manager interface."
     }
   ],
   "performance": {},
   "architecture": {
     "type": "processor",
     "features": [
-      "Region configuration for memory remapping",
-      "Crash dump support for exception handling",
-      "Power management interface for core sleeping state"
+      "RISC-V core configuration",
+      "Region mapping and address remapping",
+      "Crash dump handling",
+      "Power management interface"
     ]
   },
   "asic": {
@@ -91,29 +133,23 @@
   },
   "dependencies": [
     {
-      "name": "vyges-ip/ibex",
-      "version": ">=1.0.0",
-      "dependency_info": {
-        "name": "vyges-ip/ibex",
-        "version": ">=1.0.0",
-        "type": "ip"
-      },
-      "source_management": {
-        "source": {
-          "type": "git",
-          "url": "https://github.com/vyges-ip/ibex",
-          "commit": "main"
-        },
-        "autoFetch": true
-      },
-      "compliance": {
-        "license": "Apache-2.0",
-        "attribution": "Ibex RV32 CPU core containing ibex_pkg. MUST-HAVE: this wrappers rv_core_ibex_pkg.sv imports ibex_pkg::crash_dump_t."
-      }
+      "name": "ibex_pkg",
+      "type": "library",
+      "description": "Provides crash dump structure used in rv_core_ibex."
     }
   ],
   "test": {
-    "testbenches": [],
+    "testbenches": [
+      {
+        "name": "soc_integration",
+        "path": "tb/cocotb/",
+        "framework": "cocotb",
+        "simulators": [
+          "verilator"
+        ],
+        "description": "SoC-level integration verified in edge-sensor-soc"
+      }
+    ],
     "status": "upstream_passing",
     "coverage": "functional"
   },
@@ -131,11 +167,10 @@
   ],
   "keywords": [
     "RISC-V",
+    "processor",
     "OpenTitan",
     "Ibex",
-    "Processor",
-    "Power Management",
-    "Crash Dump"
+    "power management"
   ],
   "trust": {
     "verification_level": "silicon_proven",
@@ -143,16 +178,122 @@
     "fpga_validated": false,
     "formal_verified": false,
     "maintained": true,
-    "last_activity": "2026-04-13"
+    "last_activity": "2026-04-06"
   },
   "meta": {
     "template": {
       "generator": "github-models-ai",
       "template_version": "1.0.0",
-      "generated_at": "2026-04-13T02:36:33Z"
+      "generated_at": "2026-04-06T02:27:45Z"
     },
     "schema": {
       "version": "1.0.0"
+    }
+  },
+  "integration": {
+    "soc_generator_hints": {
+      "top_module": "ibex_top",
+      "wrapper_module": "rv_core_ibex_tlul",
+      "wrapper_template": "rv_core_ibex_tlul.sv.j2",
+      "clock": {
+        "port": "clk_i"
+      },
+      "reset": {
+        "port": "rst_ni",
+        "polarity": "active_low"
+      },
+      "bus_slave": {
+        "protocol": "OBI",
+        "note": "Ibex uses OBI-style instruction + data interfaces, not TL-UL. The wrapper bridges to TL-UL via tlul_adapter_host."
+      },
+      "interrupts": [
+        {
+          "port": "irq_software_i",
+          "type": "level",
+          "direction": "input"
+        },
+        {
+          "port": "irq_timer_i",
+          "type": "level",
+          "direction": "input"
+        },
+        {
+          "port": "irq_external_i",
+          "type": "level",
+          "direction": "input"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "SecureIbex",
+          "maps_to": "config.SecureIbex",
+          "default": 0
+        },
+        {
+          "name": "ICache",
+          "maps_to": "config.ICache",
+          "default": 0
+        },
+        {
+          "name": "WritebackStage",
+          "maps_to": "config.WritebackStage",
+          "default": 0
+        },
+        {
+          "name": "BranchPredictor",
+          "maps_to": "config.BranchPredictor",
+          "default": 0
+        },
+        {
+          "name": "PMPEnable",
+          "maps_to": "config.PMPEnable",
+          "default": 0
+        },
+        {
+          "name": "RV32E",
+          "maps_to": "config.RV32E",
+          "default": 0
+        },
+        {
+          "name": "RV32M",
+          "maps_to": "config.RV32M",
+          "default": "Fast",
+          "type": "string"
+        },
+        {
+          "name": "RV32B",
+          "maps_to": "config.RV32B",
+          "default": "None",
+          "type": "string"
+        },
+        {
+          "name": "RegFile",
+          "maps_to": "config.RegFile",
+          "default": "FF",
+          "type": "string"
+        },
+        {
+          "name": "DbgTriggerEn",
+          "maps_to": "config.DbgTriggerEn",
+          "default": 0
+        },
+        {
+          "name": "BranchTargetALU",
+          "maps_to": "config.BranchTargetALU",
+          "default": 0
+        }
+      ],
+      "boot_rom": {
+        "depth_from": "memory.rom.size / 4",
+        "addr_port": "boot_addr_i",
+        "addr_from": "memory.rom.base_address"
+      },
+      "status_outputs": [
+        {
+          "port": "core_sleep_o",
+          "description": "CPU sleep status for power management"
+        }
+      ]
     }
   }
 }
