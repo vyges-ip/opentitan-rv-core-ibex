@@ -122,5 +122,12 @@
     "schema": {
       "version": "1.0.0"
     }
-  }
+  },
+  "vyges_additions": [
+    {
+      "path": "vyges-additions/rv_core_ibex_tlul.sv",
+      "kind": "rtl",
+      "description": "Thin TL-UL adapter around upstream ibex_top for SoC integration. See vyges-additions/README.md."
+    }
+  ]
 }
