@@ -60,51 +60,78 @@
     },
     {
       "type": "bus",
-      "direction": "input",
-      "protocol": "custom",
-      "port": "matching_region",
-      "width": 32,
-      "description": "Region matching configuration for address remapping.",
+      "direction": "master",
+      "protocol": "TL-UL",
+      "port": "tl",
+      "description": "TL-UL host (master) bus to the SoC crossbar; bridges Ibex OBI data accesses to TL-UL.",
       "signals": [
         {
-          "name": "cfg_i",
+          "name": "tl_o",
+          "direction": "output",
+          "type": "bus",
+          "description": "TL-UL host-to-device channel (request)"
+        },
+        {
+          "name": "tl_i",
           "direction": "input",
-          "type": "data",
-          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
+          "type": "bus",
+          "description": "TL-UL device-to-host channel (response)"
         }
       ]
     },
     {
-      "type": "bus",
+      "type": "data",
       "direction": "input",
       "protocol": "custom",
-      "port": "remap_addr",
+      "port": "boot_addr_i",
       "width": 32,
-      "description": "Address remapping configuration.",
-      "signals": [
-        {
-          "name": "cfg_i",
-          "direction": "input",
-          "type": "data",
-          "description": "Config struct (see Ibex rv_core_ibex_cfg_pkg for full layout)"
-        }
-      ]
+      "description": "Boot address (instruction fetch base, e.g. ROM base)."
+    },
+    {
+      "type": "interrupt",
+      "direction": "input",
+      "protocol": "custom",
+      "port": "irq_software_i",
+      "width": 1,
+      "description": "RISC-V machine software interrupt (level)."
+    },
+    {
+      "type": "interrupt",
+      "direction": "input",
+      "protocol": "custom",
+      "port": "irq_timer_i",
+      "width": 1,
+      "description": "RISC-V machine timer interrupt (level)."
+    },
+    {
+      "type": "interrupt",
+      "direction": "input",
+      "protocol": "custom",
+      "port": "irq_external_i",
+      "width": 1,
+      "description": "RISC-V machine external interrupt (level)."
     },
     {
       "type": "interrupt",
       "direction": "output",
       "protocol": "custom",
-      "port": "core_sleeping",
+      "port": "core_sleep_o",
       "width": 1,
-      "description": "Indicates whether the core is in a sleeping state."
+      "description": "CPU sleep status output for power management."
     }
   ],
   "parameters": [
     {
-      "name": "CPU_PWRMGR_DEFAULT",
-      "type": "bit",
-      "default": 0,
-      "description": "Default value for the core sleeping state in the power manager interface."
+      "name": "BootRomFile",
+      "type": "string",
+      "default": "",
+      "description": "Path to hex firmware image for the boot ROM; empty string means NOP-fill."
+    },
+    {
+      "name": "BootRomDepth",
+      "type": "int",
+      "default": 8192,
+      "description": "Boot ROM depth in 32-bit words (default 8192 = 32 KB)."
     }
   ],
   "performance": {},
