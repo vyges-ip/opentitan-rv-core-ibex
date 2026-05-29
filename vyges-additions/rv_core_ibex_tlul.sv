@@ -19,7 +19,12 @@ module rv_core_ibex_tlul
   import prim_mubi_pkg::*;
 #(
   parameter string BootRomFile  = "",   // "" = NOP-fill; non-empty = $readmemh firmware
-  parameter int    BootRomDepth = 8192  // 32-bit words; 8192 × 4 B = 32 KB
+  parameter int    BootRomDepth = 8192, // 32-bit words; 8192 × 4 B = 32 KB
+  // Root-of-Trust hardening toggle. 0 (default) = standard mode: no lockstep,
+  // dummy instructions, or register-file/memory ECC. 1 = SecureIbex. Driven by
+  // the soc-spec cpus[].config.security_mode knob ('secure' -> 1). Forwarded to
+  // ibex_top, which derives MemECC/Lockstep/DummyInstructions from it.
+  parameter bit    SecureIbex   = 1'b0
 ) (
   input  logic         clk_i,
   input  logic         rst_ni,
@@ -162,7 +167,7 @@ module rv_core_ibex_tlul
     .ICacheECC          (1'b0),
     .BranchPredictor    (1'b0),
     .DbgTriggerEn       (1'b0),
-    .SecureIbex         (1'b0),
+    .SecureIbex         (SecureIbex),
     .LockstepOffset     (1)
   ) u_ibex (
     .clk_i                       (clk_i),
