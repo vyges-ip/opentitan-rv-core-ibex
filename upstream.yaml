@@ -3,7 +3,7 @@ upstream:
   type: "monorepo"
   source: https://github.com/lowRISC/opentitan
   path: hw/ip/rv_core_ibex
-  commit: e404f576d4e48cdbd2e56e4b34f686107bf38850
+  commit: 478afb033bb2d3e62cb4c5dd097f578de461b2b5
   extracted_at: "2026-03-23T02:09:25Z"
 import:
   rtl:
